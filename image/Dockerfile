@@ -28,7 +28,7 @@ RUN cmake --install .
 # Build Qt for WASM
 RUN mkdir -p /development/qt5_build
 WORKDIR /development/qt5_build
-RUN /development/qt5/configure -qt-host-path /usr/local/Qt-x64 -xplatform wasm-emscripten -feature-thread -nomake examples -prefix /usr/local/Qt-wasm
+RUN /development/qt5/configure -qt-host-path /usr/local/Qt-x64 -debug -xplatform wasm-emscripten -feature-thread -nomake examples -prefix /usr/local/Qt-wasm
 RUN cmake --build . --parallel 4
 RUN cmake --install .
 
@@ -65,4 +65,4 @@ RUN mkdir -p /project/dependencies/include && mkdir -p /project/dependencies/lib
 WORKDIR /project/build
 
 # Default build command
-CMD cmake -DCMAKE_TOOLCHAIN_FILE=/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DCMAKE_BUILD_TYPE=Release -G "Unix Makefiles" -DCMAKE_PREFIX_PATH=/project/Qt /project/source && make VERBOSE=1
+CMD cmake -DCMAKE_TOOLCHAIN_FILE=/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DCMAKE_BUILD_TYPE=Debug -G "Unix Makefiles" -DCMAKE_PREFIX_PATH=/project/Qt /project/source && make VERBOSE=1
