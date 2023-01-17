@@ -44,6 +44,9 @@ RUN update-ca-certificates
 COPY --from=qtbuilder /usr/local/Qt-x64/  /usr/local/Qt-x64/
 COPY --from=qtbuilder /usr/local/Qt-wasm/ /usr/local/Qt-wasm/
 
+# Hack Qt6Targets.cmake to enable exception catching (https://bugreports.qt.io/browse/QTBUG-110288)
+COPY Qt6Targets-6.4.cmake /usr/local/Qt-wasm/lib/cmake/Qt6/Qt6Targets.cmake
+
 # Install Boost & Eigen
 # https://docs.docker.com/develop/develop-images/dockerfile_best-practices/
 RUN apt-get update && apt-get -y install \
