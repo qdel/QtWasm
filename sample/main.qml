@@ -7,7 +7,8 @@ Window {
     MouseArea {
         anchors.fill: parent
         onClicked: {
-            Qt.quit();
+            console.log('click');
+            //            Qt.quit();
         }
     }
 
@@ -15,7 +16,7 @@ Window {
         anchors.fill: parent
         Text {
             anchors.centerIn: parent
-            text: "Qt WebAssembly is working!\nPlatform: "+Qt.platform.os
+            text: "Qt WebAssembly is working!\nPlatform: " + Qt.platform.os
         }
     }
 }
