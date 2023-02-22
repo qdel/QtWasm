@@ -6,12 +6,11 @@
 #include <thread>
 #include <iostream>
 
-
 static void PrintFileContent (const char * filename) {
     std::ifstream myfile (filename);
     if (!myfile.is_open())
         return;
-    
+
     std::string line;
     while (getline(myfile,line))
         std::cout << line << '\n';
@@ -20,13 +19,14 @@ static void PrintFileContent (const char * filename) {
 void ThreadFunction () {
     std::cout << "Hello thread\n";
 }
+QGuiApplication*    g_app = nullptr;
 
 int main(int argc, char *argv[])
 {
     std::cout << "Qt version " << QT_VERSION_STR << std::endl;
-    
+
     PrintFileContent("example.txt");
-    
+
     try {
         throw std::runtime_error("Hello runtime_error");
     } catch (std::exception & e) {
@@ -42,10 +42,9 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    QGuiApplication app(argc, argv);
+    g_app = new QGuiApplication(argc, argv);
+    QQmlApplicationEngine* engine = new QQmlApplicationEngine(g_app);
+    engine->load(QUrl(QStringLiteral("qrc:/main.qml")));
 
-    QQmlApplicationEngine engine;
-    engine.load(QUrl(QStringLiteral("qrc:/main.qml")));
-
-    return app.exec();
+    return 0;
 }
