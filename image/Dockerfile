@@ -18,20 +18,21 @@ WORKDIR /development/qt5
 RUN git rev-parse HEAD
 RUN ./init-repository
 
+ARG PARALLELJOBS=
+
 # Build Qt for x64
 RUN mkdir -p /development/qt5_build_x64
 WORKDIR /development/qt5_build_x64
 RUN /development/qt5/configure -nomake examples -nomake tests -prefix /usr/local/Qt-x64
-RUN cmake --build .
+RUN cmake --build . --parallel ${PARALLELJOBS}
 RUN cmake --install .
 
 # Build Qt for WASM
 RUN mkdir -p /development/qt5_build
 WORKDIR /development/qt5_build
 RUN /development/qt5/configure -qt-host-path /usr/local/Qt-x64 -xplatform wasm-emscripten -feature-wasm-exceptions -feature-thread -nomake examples -prefix /usr/local/Qt-wasm
-RUN cmake --build .
+RUN cmake --build . --parallel ${PARALLELJOBS}
 RUN cmake --install .
-
 
 FROM emscripten/emsdk:3.1.27
 
