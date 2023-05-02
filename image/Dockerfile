@@ -17,7 +17,7 @@ RUN mkdir -p /development
 
 # Install GE root certificate
 # must be downloaded from https://static.gecirtnotification.com/browser_remediation/sop_server_v1.html and copied into container first
-COPY GE_External_Root_CA_2_1.crt /usr/local/share/ca-certificates
+COPY GE_External_Root_CA_2_1.crt /opt/share/ca-certificates
 RUN update-ca-certificates
 
 # Install Mesa OpenGL and ninja (needed to build Qt for x64)
@@ -33,7 +33,7 @@ WORKDIR /development/qt5
 # Build Qt for x64
 RUN mkdir -p /development/qt5_build_x64
 WORKDIR /development/qt5_build_x64
-RUN /development/qt5/configure -nomake examples -nomake tests -prefix /usr/local/Qt-x64
+RUN /development/qt5/configure -nomake examples -nomake tests -prefix /opt/Qt-x64
 RUN cmake --build . $EXTRA_BUILD_PARAMS
 RUN cmake --install .
 
@@ -46,7 +46,7 @@ RUN patch -p1 < patch2.patch
 WORKDIR /development/qt5
 RUN mkdir -p /development/qt5_build
 WORKDIR /development/qt5_build
-RUN /development/qt5/configure -qt-host-path /usr/local/Qt-x64 -xplatform wasm-emscripten -feature-wasm-exceptions -feature-thread -nomake examples -prefix /usr/local/Qt-wasm
+RUN /development/qt5/configure -qt-host-path /opt/Qt-x64 -xplatform wasm-emscripten -feature-wasm-exceptions -feature-thread -nomake examples -prefix /opt/Qt-wasm
 RUN cmake --build . $EXTRA_BUILD_PARAMS
 RUN cmake --install .
 
@@ -59,7 +59,8 @@ RUN wget https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.8/hdf5-1.8.23/src
     tar -xf hdf5-1.8.23.tar.gz
 WORKDIR /build/hdf5-1.8.23
 #inject wasm specific flags in the projects
-RUN emcmake cmake -S . -B build-wasm -DCMAKE_INSTALL_PREFIX:PATH=/usr/local/hdf5 \
+RUN emcmake cmake -S . -B build-wasm -DCMAKE_INSTALL_PREFIX:PATH=/opt/wasm-deps \
+    -DHDF5_INSTALL_CMAKE_DIR=lib/cmake/ \
     -DCMAKE_BUILD_TYPE:STRING=Release \
     -DBUILD_SHARED_LIBS:BOOL=OFF \
     -DBUILD_TESTING:BOOL=OFF \
@@ -79,12 +80,12 @@ RUN wget http://sourceforge.net/projects/boost/files/boost/1.81.0/boost_1_81_0.t
     tar -xf boost_1_81_0.tar.gz
 WORKDIR /build/boost_1_81_0
 # Configure to install everything to dedicated folder (easier to copy later)
-RUN ./bootstrap.sh --with-icu=/emsdk/upstream/emscripten/cache/ports/icu/icu --prefix=/usr/local/boost
+RUN ./bootstrap.sh --with-icu=/emsdk/upstream/emscripten/cache/ports/icu/icu --prefix=/opt/wasm-deps/
 # actually we use headers-only build, using the --with-headers library allow us to install boost without actually building anything
 # if one want to build libraries, he can remove the --with-headers flags and all libraries will be built.
 # Build was tested with: --without-python --without-iostreams --without-test
 RUN ./b2 toolset=emscripten variant=release \
-    --prefix=/usr/local/boost --build-dir=/build/tmp \
+    --prefix=/opt/wasm-deps/ --build-dir=/build/tmp \
     link=static threading=multi \
     linkflags='-s USE_PTHREADS=1' cflags='-s USE_PTHREADS=1 -fwasm-exceptions' cxxflags='-pthread -fwasm-exceptions' \
     --with-headers \
@@ -97,25 +98,25 @@ WORKDIR /build
 RUN wget https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz && \
     tar -xf eigen-3.4.0.tar.gz
 WORKDIR /build/eigen-3.4.0
-RUN emcmake cmake -S . -B build-wasm -DCMAKE_INSTALL_PREFIX:PATH=/usr/local/eigen -DCMAKE_BUILD_TYPE:STRING=Release
+RUN emcmake cmake -S . -B build-wasm -DCMAKE_INSTALL_PREFIX:PATH=/opt/wasm-deps -DCMAKE_BUILD_TYPE:STRING=Release
 WORKDIR /build/eigen-3.4.0/build-wasm
 RUN emmake make -j`proc` install
 
 FROM base
 
-# Copy Qt binaries to new container
-COPY --from=boost-builder /usr/local/boost/ /usr/local/boost/
-COPY --from=eigen-builder /usr/local/eigen/ /usr/local/eigen/
-COPY --from=hdf5-builder /usr/local/hdf5/ /usr/local/hdf5/
-COPY --from=qtbuilder /usr/local/Qt-x64/  /usr/local/Qt-x64/
-COPY --from=qtbuilder /usr/local/Qt-wasm/ /usr/local/Qt-wasm/
-
 RUN apt-get update && apt-get -y install \
     ninja-build      \
     libtool-bin
+
+# Copy Qt binaries to new container
+COPY --from=boost-builder /opt/wasm-deps/ /opt/wasm-deps/
+COPY --from=eigen-builder /opt/wasm-deps/ /opt/wasm-deps/
+COPY --from=hdf5-builder /opt/wasm-deps/ /opt/wasm-deps/
+COPY --from=qtbuilder /opt/Qt-x64/  /opt/Qt-x64/
+COPY --from=qtbuilder /opt/Qt-wasm/ /opt/Qt-wasm/
 
 # Build custom sources
 WORKDIR /project/build
 
 # Default build command will explicitly target wasm
-CMD /usr/local/Qt-wasm/bin/qt-cmake -DCMAKE_BUILD_TYPE=Release -G Ninja /project/source && ninja
+CMD /opt/Qt-wasm/bin/qt-cmake -DCMAKE_BUILD_TYPE=Release -G Ninja /project/source && ninja
